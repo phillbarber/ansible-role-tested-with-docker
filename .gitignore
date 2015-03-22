@@ -1,0 +1,10 @@
+out/
+logs
+*.db
+automated-testsz/build/
+.vagrant/
+.gradle/
+*.iml
+.idea/
+*.db
+build/

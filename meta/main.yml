@@ -1,0 +1,7 @@
+galaxy_info:
+author: Phill Barber
+description: Installs some important config
+min_ansible_version: 1.2
+platforms:
+- name: CentOS
+dependencies: []

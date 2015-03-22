@@ -1,0 +1,2 @@
+- name: Copy config file /etc/
+  copy: src=important-config.conf dest=/etc/important-config.conf
