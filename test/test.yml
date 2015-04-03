@@ -1,4 +1,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - "{{ROLE_DIRECTORY}}" #this is a way to reference this role without having to install it first
+    - ../dummy-role
