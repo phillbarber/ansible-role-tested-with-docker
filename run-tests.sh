@@ -2,6 +2,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 #Bash strict mode http://redsymbol.net/articles/unofficial-bash-strict-mode/
+#This means the script will fail as soon anything fails
 
 
 #Test inspired by https://servercheck.in/blog/testing-ansible-roles-travis-ci-github
@@ -32,8 +33,6 @@ ANSIBLE_OUTPUT=`ansible-playbook -i test/inventory test/test.yml --extra-vars "R
 echo $ANSIBLE_OUTPUT
 
 [[ $ANSIBLE_OUTPUT =~ changed=0.*unreachable=0.*failed=0 ]] && echo "Idempotence Test Passed" || echo "Idempotence Test Failed" exit 1
-
-# grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0)|| (echo 'Idempotence test: fail' && exit 1)
 
 echo "check config was actually installed"
 docker exec  $DOCKER_CONTAINER_NAME cat /etc/important-config.conf
