@@ -1,38 +1,54 @@
+#Bash strict mode http://redsymbol.net/articles/unofficial-bash-strict-mode/
+#This means the script will fail as soon anything fails
 #!/bin/bash
 set -euo pipefail
 IFS=$'\n\t'
-#Bash strict mode http://redsymbol.net/articles/unofficial-bash-strict-mode/
-#This means the script will fail as soon anything fails
-
 
 #Test inspired by https://servercheck.in/blog/testing-ansible-roles-travis-ci-github
+
 DOCKER_IMAGE="tutum/centos:centos7"
 SSH_PUBLIC_KEY_FILE=~/.ssh/id_rsa.pub
 SSH_PUBLIC_KEY=`cat "$SSH_PUBLIC_KEY_FILE"`
 DOCKER_CONTAINER_NAME="centos7-for-ansible-role-test"
 
-echo "Test role sytax locally"
-ansible-playbook -i test/inventory test/test.yml --syntax-check
+function startDockerContainer {
+    echo "Stop any running docker containers of the name $DOCKER_CONTAINER_NAME"
+    docker stop $DOCKER_CONTAINER_NAME || true
+    docker rm $DOCKER_CONTAINER_NAME || true
+    echo "Starting docker container... "
+    docker run --name $DOCKER_CONTAINER_NAME -d -p 5555:22 -e AUTHORIZED_KEYS="$SSH_PUBLIC_KEY" $DOCKER_IMAGE
+}
 
-echo "Stop any running docker containers of the name $DOCKER_CONTAINER_NAME"
-docker stop $DOCKER_CONTAINER_NAME || true
-docker rm $DOCKER_CONTAINER_NAME || true
+function testRoleInstalledFileAsExpected {
+    echo "check config was actually installed"
+    docker exec  $DOCKER_CONTAINER_NAME cat /etc/important-config.conf
+}
 
-echo "Starting docker container... "
-docker run --name $DOCKER_CONTAINER_NAME -d -p 5555:22 -e AUTHORIZED_KEYS="$SSH_PUBLIC_KEY" $DOCKER_IMAGE
+function testRoleCanBeAppliedToDockerContainer {
+    echo "Test role can be applied to docker container"
+    ansible-playbook -i test/inventory test/test.yml
+}
 
-echo "Test role can be applied"
-ansible-playbook -i test/inventory test/test.yml
+function testRoleSyntax {
+    echo "Test role sytax locally"
+    ansible-playbook -i test/inventory test/test.yml --syntax-check
+}
 
-echo "Test for idempotence.  Run playbook again, should result in zero changes (i.e. idempotence test)"
+function testForIdempotence {
+    echo "Test for idempotence.  Run playbook again, should result in zero changes."
+    ANSIBLE_OUTPUT=`ansible-playbook -i test/inventory test/test.yml  || true`
+    echo $ANSIBLE_OUTPUT
+    [[ $ANSIBLE_OUTPUT =~ changed=0.*unreachable=0.*failed=0 ]] && echo "Idempotence Test Passed" || echo "Idempotence Test Failed" && exit 1
+}
 
-# || true means don't fail on errors for the 2nd run
-ANSIBLE_OUTPUT=`ansible-playbook -i test/inventory test/test.yml  || true`
+testRoleSyntax
 
-echo $ANSIBLE_OUTPUT
+startDockerContainer
 
-[[ $ANSIBLE_OUTPUT =~ changed=0.*unreachable=0.*failed=0 ]] && echo "Idempotence Test Passed" || echo "Idempotence Test Failed" exit 1
+testRoleCanBeAppliedToDockerContainer
 
-echo "check config was actually installed"
-docker exec  $DOCKER_CONTAINER_NAME cat /etc/important-config.conf
+testForIdempotence
+
+testRoleInstalledFileAsExpected
+
 echo "All Tests Passed"
