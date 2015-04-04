@@ -1,7 +1,6 @@
 out/
 logs
 *.db
-automated-testsz/build/
 .vagrant/
 .gradle/
 *.iml
